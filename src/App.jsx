@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@clerk/clerk-react'
+import { UserProvider } from './context/UserContext'
+import { LogProvider } from './context/LogContext'
 import NavBar from './components/NavBar'
 import Scanner from './pages/Scanner'
 import Log from './pages/Log'
@@ -7,21 +9,26 @@ import Charts from './pages/Charts'
 import Settings from './pages/Settings'
 import LandingPage from './pages/LandingPage'
 
-export default function App() {
+function Inner() {
   const [tab, setTab] = useState('scan')
   const { isSignedIn, isLoaded } = useAuth()
 
-  if (!isLoaded) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-        <span className="spin" style={{ fontSize: 32 }}>⟳</span>
-      </div>
-    )
-  }
+  // Handle redirect back from Stripe
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('upgrade') === 'success') {
+      window.history.replaceState({}, '', '/')
+      setTab('settings')
+    }
+  }, [])
 
-  if (!isSignedIn) {
-    return <LandingPage />
-  }
+  if (!isLoaded) return (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh' }}>
+      <span className="spin" style={{ fontSize: 32 }}>⟳</span>
+    </div>
+  )
+
+  if (!isSignedIn) return <LandingPage />
 
   return (
     <>
@@ -33,5 +40,15 @@ export default function App() {
       {tab === 'settings' && <Settings />}
       <NavBar active={tab} onChange={setTab} />
     </>
+  )
+}
+
+export default function App() {
+  return (
+    <UserProvider>
+      <LogProvider>
+        <Inner />
+      </LogProvider>
+    </UserProvider>
   )
 }
